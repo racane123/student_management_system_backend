@@ -7,10 +7,10 @@ import * as examService from './exam.service.js';
 import * as examRepository from './exam.repository.js';
 import { safeParseCreateExam, safeParseUpdateExam } from './exam.validation.js';
 
-/** Normalize exam for API (camelCase for frontend). */
+/** Normalize exam for API (camelCase for frontend). Includes enrolled_count when present (from list). */
 function toApiExam(exam) {
   if (!exam) return null;
-  return {
+  const out = {
     ...exam,
     classId: exam.class_id,
     subjectId: exam.subject_id,
@@ -22,6 +22,8 @@ function toApiExam(exam) {
     createdAt: exam.created_at,
     updatedAt: exam.updated_at,
   };
+  if (exam.enrolled_count != null) out.enrolledCount = exam.enrolled_count;
+  return out;
 }
 
 /**
@@ -46,8 +48,11 @@ export async function create(req, res, next) {
     if (err.code === 'NOT_FOUND') {
       return res.status(404).json({ message: err.message });
     }
-    if (err.code === 'VALIDATION' || err.code === 'DUPLICATE') {
+    if (err.code === 'VALIDATION') {
       return res.status(400).json({ message: err.message });
+    }
+    if (err.code === 'DUPLICATE' || err.code === 'CONFLICT_DATE') {
+      return res.status(409).json({ message: err.message });
     }
     if (err?.code === 'P2002') {
       return res.status(409).json({
@@ -119,8 +124,11 @@ export async function update(req, res, next) {
     if (err.code === 'NOT_FOUND') {
       return res.status(404).json({ message: err.message });
     }
-    if (err.code === 'VALIDATION' || err.code === 'DUPLICATE') {
+    if (err.code === 'VALIDATION') {
       return res.status(400).json({ message: err.message });
+    }
+    if (err.code === 'DUPLICATE' || err.code === 'CONFLICT_DATE') {
+      return res.status(409).json({ message: err.message });
     }
     if (err?.code === 'P2025') {
       return res.status(404).json({ message: 'Exam not found' });

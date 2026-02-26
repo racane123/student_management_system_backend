@@ -56,7 +56,10 @@ export const registerStudentSchema = z
       .optional()
       .nullable()
       .or(z.literal('')),
-    status: z.enum(['active', 'inactive']).optional().default('active'),
+    status: z
+      .enum(['active', 'inactive', 'pending', 'suspended'])
+      .optional()
+      .default('active'),
   })
   .strict();
 
@@ -106,7 +109,10 @@ export const createStudentSchema = z
       .nullable()
       .or(z.literal('')),
     profile_image: z.string().url().optional().nullable(),
-    status: z.enum(['active', 'inactive']).optional().default('active'),
+    status: z
+      .enum(['active', 'inactive', 'pending', 'suspended'])
+      .optional()
+      .default('active'),
   })
   .strict();
 

@@ -8,6 +8,28 @@ import { safeParseRegisterStudent } from './student.validation.js';
 import * as studentService from './student.service.js';
 import * as studentRepository from './student.repository.js';
 
+function toApiStudent(student) {
+  if (!student) return null;
+  return {
+    id: student.id,
+    admissionNo: student.admission_no,
+    firstName: student.first_name,
+    lastName: student.last_name,
+    gender: student.gender,
+    dob: student.date_of_birth,
+    email: student.email,
+    phone: student.phone,
+    address: student.address,
+    classId: student.class_id,
+    guardianName: student.guardian_name,
+    guardianPhone: student.guardian_phone,
+    profileImage: student.profile_image,
+    status: student.status,
+    createdAt: student.created_at,
+    updatedAt: student.updated_at,
+  };
+}
+
 /**
  * POST /students/register
  * Create student (user + student profile + student_accounts) in one transaction.
@@ -96,7 +118,7 @@ export async function create(req, res, next) {
       status: data.status ?? 'active',
     };
     const student = await studentRepository.createStudent(payload);
-    return res.status(201).json(student);
+    return res.status(201).json(toApiStudent(student));
   } catch (err) {
     if (err?.code === 'P2002') {
       const target = err.meta?.target || [];
@@ -117,7 +139,7 @@ export async function list(req, res, next) {
     const { page, limit } = req.query;
     const result = await studentService.getStudents(req.query);
     return res.json({
-      data: result.list,
+      data: result.list.map(toApiStudent),
       totalCount: result.total,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
@@ -138,7 +160,7 @@ export async function getById(req, res, next) {
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
-    return res.json(student);
+    return res.json(toApiStudent(student));
   } catch (err) {
     next(err);
   }
@@ -151,7 +173,7 @@ export async function getById(req, res, next) {
 export async function update(req, res, next) {
   try {
     const student = await studentRepository.updateStudent(req.params.id, req.body);
-    return res.json(student);
+    return res.json(toApiStudent(student));
   } catch (err) {
     if (err?.code === 'P2025') {
       return res.status(404).json({ message: 'Student not found' });

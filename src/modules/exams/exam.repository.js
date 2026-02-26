@@ -22,6 +22,21 @@ export async function findDuplicateExam(classId, subjectId, name, excludeId = nu
   return prisma.exams.findFirst({ where });
 }
 
+/**
+ * Find an exam already scheduled for the same class on the same date (for conflict check).
+ */
+export async function findExamOnDateForClass(classId, examDate, excludeId = null) {
+  const where = {
+    class_id: Number(classId),
+    exam_date: String(examDate),
+  };
+  if (excludeId != null) where.id = { not: Number(excludeId) };
+  return prisma.exams.findFirst({
+    where,
+    include: { class: true, subject: true },
+  });
+}
+
 export async function findManyExams(params = {}) {
   const { page = 1, limit = 10, classId, date, search } = params;
   const skip = (page - 1) * limit;
@@ -41,7 +56,25 @@ export async function findManyExams(params = {}) {
     }),
     prisma.exams.count({ where }),
   ]);
-  return { list, total };
+
+  if (list.length === 0) return { list, total };
+
+  const classIds = [...new Set(list.map((e) => e.class_id))];
+  const enrollmentCounts = await prisma.enrollments.groupBy({
+    by: ['class_id'],
+    where: { class_id: { in: classIds }, status: 'ENROLLED' },
+    _count: { id: true },
+  });
+  const countByClassId = Object.fromEntries(
+    enrollmentCounts.map((row) => [row.class_id, row._count.id])
+  );
+
+  const listWithCount = list.map((exam) => ({
+    ...exam,
+    enrolled_count: countByClassId[exam.class_id] ?? 0,
+  }));
+
+  return { list: listWithCount, total };
 }
 
 export async function createExam(data) {
@@ -55,7 +88,7 @@ export async function createExam(data) {
       end_time: data.end_time,
       total_marks: data.total_marks ?? 100,
       passing_marks: data.passing_marks ?? 40,
-      status: data.status ?? 'Scheduled',
+      status: data.status ?? 'PENDING',
     },
     include: { class: true, subject: true },
   });

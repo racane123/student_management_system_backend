@@ -148,7 +148,7 @@ model exams {
   end_time       String    // HH:mm
   total_marks    Int       @default(100)
   passing_marks  Int       @default(40)
-  status         String    @default("Scheduled") // Scheduled | Ongoing | Completed
+  status         String    @default("PENDING") // PENDING | ONGOING | COMPLETED (lifecycle for Results entry)
   created_at     DateTime  @default(now())
   updated_at     DateTime  @updatedAt
 
