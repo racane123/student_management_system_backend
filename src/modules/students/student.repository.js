@@ -83,7 +83,23 @@ export async function createStudent(data) {
 export async function findStudentById(id, opts = {}) {
   return prisma.students.findUnique({
     where: { id: Number(id) },
-    include: opts.include ?? undefined,
+    include:
+      opts.include ??
+      {
+        class: true,
+        student_accounts: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+        },
+      },
   });
 }
 
@@ -111,7 +127,10 @@ export async function findManyStudents(params = {}) {
       skip,
       take: limit,
       orderBy: { created_at: 'desc' },
-      include: { student_accounts: { include: { user: true } } },
+      include: {
+        class: true,
+        student_accounts: { include: { user: true } },
+      },
     }),
     prisma.students.count({ where }),
   ]);
@@ -126,6 +145,7 @@ export async function updateStudent(id, data) {
   return prisma.students.update({
     where: { id: Number(id) },
     data: {
+      ...(data.admission_no != null && { admission_no: data.admission_no }),
       ...(data.first_name != null && { first_name: data.first_name }),
       ...(data.last_name != null && { last_name: data.last_name }),
       ...(data.gender != null && { gender: data.gender }),
@@ -136,6 +156,7 @@ export async function updateStudent(id, data) {
       ...(data.class_id != null && { class_id: data.class_id }),
       ...(data.guardian_name != null && { guardian_name: data.guardian_name }),
       ...(data.guardian_phone != null && { guardian_phone: data.guardian_phone }),
+      ...(data.profile_image != null && { profile_image: data.profile_image }),
       ...(data.status != null && { status: data.status }),
     },
   });

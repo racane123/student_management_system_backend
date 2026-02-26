@@ -83,6 +83,7 @@ model students {
 
   class          classes?  @relation(fields: [class_id], references: [id])
   student_accounts student_accounts?
+  enrollments    enrollments[]
 }
 
 model student_accounts {
@@ -109,6 +110,7 @@ model classes {
   students     students[]
   subjects     subject_classes[]
   exams        exams[]
+  enrollments  enrollments[]
 }
 
 model subjects {
@@ -154,4 +156,20 @@ model exams {
   subject subjects @relation(fields: [subject_id], references: [id], onDelete: Cascade)
 
   @@unique([class_id, subject_id, name])
+}
+
+model enrollments {
+  id            Int      @id @default(autoincrement())
+  student_id    Int
+  class_id      Int
+  academic_year String   // e.g. 2025-2026
+  status        String   @default("ENROLLED") // ENROLLED | DROPPED | TRANSFERRED | COMPLETED
+  started_at    DateTime @default(now())
+  ended_at      DateTime?
+
+  student students @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  class   classes  @relation(fields: [class_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, class_id, academic_year])
+  @@index([class_id, academic_year])
 }

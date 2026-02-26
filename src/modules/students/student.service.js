@@ -7,7 +7,7 @@
 
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../lib/prisma.js';
-import { findUserByUsernameOrEmail } from './student.repository.js';
+import { findUserByUsernameOrEmail, findManyStudents } from './student.repository.js';
 
 const SALT_ROUNDS = 10;
 
@@ -92,6 +92,20 @@ export async function registerStudent(payload) {
   return result;
 }
 
+export async function getStudents(query) {
+  const page = query.page ? parseInt(query.page, 10) : 1;
+  const limit = query.limit ? parseInt(query.limit, 10) : 10;
+
+  return findManyStudents({
+    page,
+    limit,
+    classId: query.class_id || query.classId || undefined,
+    status: query.status || undefined,
+    search: query.search || undefined,
+  });
+}
+
 export default {
   registerStudent,
+  getStudents,
 };

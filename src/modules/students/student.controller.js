@@ -56,6 +56,10 @@ export async function register(req, res, next) {
       return res.status(409).json({ message: err.message });
     }
     if (code === 'P2002') {
+      const target = err.meta?.target || [];
+      if (Array.isArray(target) && target.some((t) => String(t).includes('admission_no'))) {
+        return res.status(409).json({ message: 'Admission number already exists.' });
+      }
       return res.status(409).json({
         message: 'User already exists with this username or email.',
       });
@@ -70,19 +74,48 @@ export async function register(req, res, next) {
 }
 
 /**
+ * POST /students
+ * Plain create (student profile only, no user account). Body validated by validate(createStudentSchema).
+ */
+export async function create(req, res, next) {
+  try {
+    const data = req.body;
+    const payload = {
+      admission_no: data.admission_no,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      gender: data.gender ?? null,
+      date_of_birth: data.date_of_birth ?? null,
+      email: data.email ?? null,
+      phone: data.phone || null,
+      address: data.address ?? null,
+      class_id: data.class_id ?? null,
+      guardian_name: data.guardian_name ?? null,
+      guardian_phone: data.guardian_phone || null,
+      profile_image: data.profile_image ?? null,
+      status: data.status ?? 'active',
+    };
+    const student = await studentRepository.createStudent(payload);
+    return res.status(201).json(student);
+  } catch (err) {
+    if (err?.code === 'P2002') {
+      const target = err.meta?.target || [];
+      if (Array.isArray(target) && target.includes('admission_no')) {
+        return res.status(409).json({ message: 'Admission number already exists.' });
+      }
+    }
+    next(err);
+  }
+}
+
+/**
  * GET /students
  * List students with optional filters (classId, status, search) and pagination.
  */
 export async function list(req, res, next) {
   try {
-    const { page, limit, classId, status, search } = req.query;
-    const result = await studentRepository.findManyStudents({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      classId: classId || undefined,
-      status: status || undefined,
-      search: search || undefined,
-    });
+    const { page, limit } = req.query;
+    const result = await studentService.getStudents(req.query);
     return res.json({
       data: result.list,
       totalCount: result.total,
@@ -113,6 +146,7 @@ export async function getById(req, res, next) {
 
 /**
  * PATCH /students/:id
+ * Body validated by validate(updateStudentSchema).
  */
 export async function update(req, res, next) {
   try {
@@ -121,6 +155,12 @@ export async function update(req, res, next) {
   } catch (err) {
     if (err?.code === 'P2025') {
       return res.status(404).json({ message: 'Student not found' });
+    }
+    if (err?.code === 'P2002') {
+      const target = err.meta?.target || [];
+      if (Array.isArray(target) && target.includes('admission_no')) {
+        return res.status(409).json({ message: 'Admission number already exists.' });
+      }
     }
     next(err);
   }

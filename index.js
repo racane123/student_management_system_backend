@@ -3,6 +3,7 @@ import studentRoutes from './src/modules/students/student.routes.js';
 import cors from 'cors';
 import authRoutes from './src/modules/auth/auth.routes.js';
 import examRoutes from './src/modules/exams/exam.routes.js';
+import enrollmentRoutes from './src/modules/enrollments/enrollment.routes.js';
 
 const app = express();
 const PORT = process.env.SERVER_PORT || process.env.PORT || 5000;
@@ -22,6 +23,7 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
 
 // 404
 app.use((_req, res) => {

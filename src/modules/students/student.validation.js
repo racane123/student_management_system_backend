@@ -61,17 +61,68 @@ export const registerStudentSchema = z
   .strict();
 
 /**
- * Validate registration payload. Throws ZodError if invalid.
- * @param {unknown} data - Raw request body
- * @returns {z.infer<typeof registerStudentSchema>}
+ * Additional schemas for plain student CRUD (without user account).
  */
-export function validateRegisterStudent(data) {
-  return registerStudentSchema.parse(data);
-}
+
+const admissionNoSchema = z
+  .string()
+  .regex(/^ST-\d{3}$/, 'Admission number must match pattern ST-000');
+
+export const createStudentSchema = z
+  .object({
+    admission_no: admissionNoSchema,
+    first_name: z.string().min(1, 'First name is required').max(100),
+    last_name: z.string().min(1, 'Last name is required').max(100),
+    gender: z.string().optional().nullable(),
+    date_of_birth: z
+      .union([
+        z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+        z.date(),
+        z.null(),
+        z.undefined(),
+      ])
+      .optional()
+      .nullable()
+      .transform((val) => {
+        if (val == null || val === '') return null;
+        return val instanceof Date ? val : new Date(val);
+      }),
+    email: z.string().email('Invalid email address').max(255).optional().nullable(),
+    phone: z
+      .string()
+      .max(20)
+      .regex(phoneRegex, 'Invalid phone number format')
+      .optional()
+      .nullable()
+      .or(z.literal('')),
+    address: z.string().max(500).optional().nullable(),
+    class_id: z.coerce.number().int().positive().optional().nullable(),
+    guardian_name: z.string().max(150).optional().nullable(),
+    guardian_phone: z
+      .string()
+      .max(20)
+      .regex(phoneRegex, 'Invalid guardian phone format')
+      .optional()
+      .nullable()
+      .or(z.literal('')),
+    profile_image: z.string().url().optional().nullable(),
+    status: z.enum(['active', 'inactive']).optional().default('active'),
+  })
+  .strict();
+
+export const updateStudentSchema = createStudentSchema.partial();
 
 /**
- * Safe parse: returns { success, data, error }.
+ * Safe parse helpers.
  */
 export function safeParseRegisterStudent(data) {
   return registerStudentSchema.safeParse(data);
+}
+
+export function safeParseCreateStudent(data) {
+  return createStudentSchema.safeParse(data);
+}
+
+export function safeParseUpdateStudent(data) {
+  return updateStudentSchema.safeParse(data);
 }
